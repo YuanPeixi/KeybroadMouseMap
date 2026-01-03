@@ -68,6 +68,14 @@ void Application::Run() {
 void Application::Shutdown() {
     m_running = false;
     
+    // Release any active touches before shutting down
+    if (m_touchInjector) {
+        m_touchInjector->ReleaseAllTouches();
+    }
+    
+    // Clear key states
+    m_keyStates.clear();
+    
     if (m_keyboardHook) {
         m_keyboardHook->Uninstall();
     }
@@ -210,7 +218,9 @@ void Application::OnKeyEvent(int virtualKey, bool isDown) {
                         // Ignore repeat key down events while holding
                     } else {
                         // Key up - touch up
-                        if (m_keyStates[virtualKey]) {
+                        // Check if key was previously pressed to avoid creating new map entries
+                        auto it = m_keyStates.find(virtualKey);
+                        if (it != m_keyStates.end() && it->second) {
                             m_keyStates[virtualKey] = false;
                             if (m_touchInjector->TouchUp(touchId)) {
                                 std::cout << "Touch up for [" << mapping.keyName << "]" << std::endl;
