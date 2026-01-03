@@ -10,37 +10,10 @@
 #define TOUCH_DEFAULT_PRESSURE  32000
 #define TOUCH_DEFAULT_ORIENTATION 90
 
-// POINTER_TOUCH_INFO structure definition
-typedef struct tagPOINTER_INFO {
-    UINT32 pointerType;
-    UINT32 pointerId;
-    UINT32 frameId;
-    UINT32 pointerFlags;
-    HANDLE sourceDevice;
-    HWND hwndTarget;
-    POINT ptPixelLocation;
-    POINT ptHimetricLocation;
-    POINT ptPixelLocationRaw;
-    POINT ptHimetricLocationRaw;
-    DWORD dwTime;
-    UINT32 historyCount;
-    INT32 InputData;
-    DWORD dwKeyStates;
-    UINT64 PerformanceCount;
-    UINT32 ButtonChangeType;
-} POINTER_INFO;
-
-typedef struct tagPOINTER_TOUCH_INFO {
-    POINTER_INFO pointerInfo;
-    UINT32 touchFlags;
-    UINT32 touchMask;
-    RECT rcContact;
-    RECT rcContactRaw;
-    UINT32 orientation;
-    UINT32 pressure;
-} POINTER_TOUCH_INFO;
-
+// PT_TOUCH constant if not defined
+#ifndef PT_TOUCH
 #define PT_TOUCH 0x00000002
+#endif
 
 TouchInjector::TouchInjector()
     : m_initialized(false)

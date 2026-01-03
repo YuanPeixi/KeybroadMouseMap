@@ -4,6 +4,11 @@ project(KeyboardMouseMap VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Set Windows target version to Windows 8 to get touch API definitions
+if(WIN32)
+    add_definitions(-DWINVER=0x0602 -D_WIN32_WINNT=0x0602)
+endif()
+
 # Add source files
 set(SOURCES
     src/main.cpp
