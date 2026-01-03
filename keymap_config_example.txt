@@ -4,11 +4,17 @@
 # This is an example configuration file.
 # The application will create its own keymap_config.txt when you use Recording Mode.
 #
+# Configuration Options:
+# hold_triggers_continuous_tap=0  (0=hold maintains touch, 1=hold triggers repeated taps)
+#
 # Common Virtual Key Codes:
 # - Letters: A=65, B=66, C=67, ... Z=90
 # - Numbers: 0=48, 1=49, 2=50, ... 9=57
 # - Function keys: F1=112, F2=113, ... F12=123
 # - Numpad: 0=96, 1=97, ... 9=105
+#
+# Example configuration:
+hold_triggers_continuous_tap=0
 #
 # Example mappings:
 # 65 100 100 A

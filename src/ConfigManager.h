@@ -37,10 +37,15 @@ public:
     
     // Clear all mappings
     void ClearMappings();
+    
+    // Get/Set hold behavior configuration
+    bool GetHoldTriggersContinuousTap() const;
+    void SetHoldTriggersContinuousTap(bool enabled);
 
 private:
     std::string m_configFile;
     std::map<int, KeyMapping> m_mappings;
+    bool m_holdTriggersContinuousTap;
     
     std::string GetKeyName(int virtualKey);
 };

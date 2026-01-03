@@ -3,7 +3,8 @@
 #include <iostream>
 
 ConfigManager::ConfigManager(const std::string& configFile)
-    : m_configFile(configFile) {
+    : m_configFile(configFile)
+    , m_holdTriggersContinuousTap(false) {  // Default: hold maintains touch
     LoadMappings();
 }
 
@@ -82,6 +83,13 @@ bool ConfigManager::LoadMappings() {
     while (std::getline(file, line)) {
         if (line.empty() || line[0] == '#') continue;
         
+        // Check for configuration options
+        if (line.find("hold_triggers_continuous_tap=") == 0) {
+            std::string value = line.substr(29); // Length of "hold_triggers_continuous_tap="
+            m_holdTriggersContinuousTap = (value == "1" || value == "true");
+            continue;
+        }
+        
         std::istringstream iss(line);
         int virtualKey, x, y;
         std::string keyName;
@@ -134,6 +142,13 @@ bool ConfigManager::SaveMappings() {
     
     file << "# Keyboard to Touch Mapping Configuration" << std::endl;
     file << "# Format: VirtualKeyCode X Y KeyName" << std::endl;
+    file << "#" << std::endl;
+    file << "# Configuration Options:" << std::endl;
+    file << "# hold_triggers_continuous_tap=0  (0=hold maintains touch, 1=hold triggers repeated taps)" << std::endl;
+    file << std::endl;
+    
+    // Write configuration option
+    file << "hold_triggers_continuous_tap=" << (m_holdTriggersContinuousTap ? "1" : "0") << std::endl;
     file << std::endl;
     
     for (const auto& pair : m_mappings) {
@@ -153,5 +168,14 @@ const std::map<int, KeyMapping>& ConfigManager::GetAllMappings() const {
 
 void ConfigManager::ClearMappings() {
     m_mappings.clear();
+    SaveMappings();
+}
+
+bool ConfigManager::GetHoldTriggersContinuousTap() const {
+    return m_holdTriggersContinuousTap;
+}
+
+void ConfigManager::SetHoldTriggersContinuousTap(bool enabled) {
+    m_holdTriggersContinuousTap = enabled;
     SaveMappings();
 }
