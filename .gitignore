@@ -55,6 +55,9 @@ Makefile
 # Configuration files (generated at runtime)
 keymap_config.txt
 
+# Build scripts output (keep the scripts themselves)
+*.log
+
 # IDE files
 .vs/
 .vscode/
