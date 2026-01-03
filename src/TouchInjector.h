@@ -41,6 +41,9 @@ public:
     // Inject a touch up event
     bool TouchUp(int touchId = 0);
     
+    // Inject a touch update event (maintains active touch)
+    bool TouchUpdate(int touchId = 0);
+    
     // Inject a complete touch (down, brief hold, up)
     bool TouchTap(int x, int y, int touchId = 0);
     

@@ -6,6 +6,7 @@
 #include "TouchInjector.h"
 #include "DisplayOverlay.h"
 #include <memory>
+#include <map>
 
 enum class AppMode {
     RECORDING,
@@ -37,8 +38,20 @@ private:
     bool m_running;
     bool m_displayEnabled;
     
+    // Track which keys are currently pressed (for hold behavior)
+    std::map<int, bool> m_keyStates;
+    
+    // Timer for touch updates
+    UINT_PTR m_touchUpdateTimer;
+    
     // Callback for keyboard events
     void OnKeyEvent(int virtualKey, bool isDown);
+    
+    // Timer callback for touch updates
+    static void CALLBACK TouchUpdateTimerProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime);
+    
+    // Update all active touches
+    void UpdateActiveTouches();
     
     // Handle mode switching
     void SetMode(AppMode mode);

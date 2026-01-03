@@ -16,6 +16,7 @@ KeyboardMouseMap.exe
 | `Ctrl+Shift+M` | Mapping Mode | Use mapped keys - press to trigger touch at saved position |
 | `Ctrl+Shift+I` | Idle Mode | Safe mode - no action on key press |
 | `Ctrl+Shift+D` | Toggle Display | Show/hide visual overlay with key indicators |
+| `Ctrl+Shift+T` | Toggle Hold Behavior | Switch between hold touch (default) and repeated taps |
 | `Ctrl+Shift+C` | Clear All | Remove all saved key mappings |
 | `Ctrl+Shift+H` | Help | Show help message in console |
 | `Ctrl+Shift+Q` | Quit | Exit the application |
@@ -50,6 +51,7 @@ KeyboardMouseMap.exe
 - **Always run as Administrator** - Required for keyboard hooks and touch injection
 - **Start in Recording Mode** - Set up your keys first
 - **Use Idle Mode** - Switch to Idle when not actively using the tool
+- **Hold Behavior** - Default is to maintain touch when holding a key; use `Ctrl+Shift+T` to enable repeated taps
 - **Overlay is non-blocking** - You can click through it
 - **Multi-point touch** - Press multiple mapped keys simultaneously
 - **Saved automatically** - Mappings persist in `keymap_config.txt`
@@ -69,6 +71,9 @@ Location: `keymap_config.txt` (same directory as executable)
 
 Format:
 ```
+# Configuration Options
+hold_triggers_continuous_tap=0  (0=hold maintains touch, 1=hold triggers repeated taps)
+
 # VirtualKeyCode X Y KeyName
 65 100 200 A
 66 300 400 B

@@ -4,11 +4,18 @@
 
 // Application constants
 #define MAX_SIMULTANEOUS_TOUCHES 10
+#define TOUCH_UPDATE_TIMER_ID 1
+#define TOUCH_UPDATE_INTERVAL_MS 500  // Update every 500ms to keep touch alive
+
+// Static instance pointer for timer callback
+static Application* s_appInstance = nullptr;
 
 Application::Application()
     : m_mode(AppMode::IDLE)
     , m_running(false)
-    , m_displayEnabled(false) {
+    , m_displayEnabled(false)
+    , m_touchUpdateTimer(0) {
+    s_appInstance = this;
 }
 
 Application::~Application() {
@@ -50,6 +57,14 @@ bool Application::Initialize() {
         this->OnKeyEvent(vk, isDown);
     });
     
+    // Create timer for touch updates (keeps touches alive)
+    // Using NULL hwnd creates a thread timer that posts WM_TIMER to the message queue
+    // This is processed by our message loop in Run()
+    m_touchUpdateTimer = SetTimer(NULL, TOUCH_UPDATE_TIMER_ID, TOUCH_UPDATE_INTERVAL_MS, TouchUpdateTimerProc);
+    if (m_touchUpdateTimer == 0) {
+        std::cerr << "Warning: Failed to create touch update timer. Held touches may timeout." << std::endl;
+    }
+    
     m_running = true;
     PrintHelp();
     PrintStatus();
@@ -68,6 +83,20 @@ void Application::Run() {
 void Application::Shutdown() {
     m_running = false;
     
+    // Kill the touch update timer
+    if (m_touchUpdateTimer != 0) {
+        KillTimer(NULL, m_touchUpdateTimer);
+        m_touchUpdateTimer = 0;
+    }
+    
+    // Release any active touches before shutting down
+    if (m_touchInjector) {
+        m_touchInjector->ReleaseAllTouches();
+    }
+    
+    // Clear key states
+    m_keyStates.clear();
+    
     if (m_keyboardHook) {
         m_keyboardHook->Uninstall();
     }
@@ -80,72 +109,82 @@ void Application::Shutdown() {
 }
 
 void Application::OnKeyEvent(int virtualKey, bool isDown) {
-    // Only process key down events
-    if (!isDown) {
-        return;
-    }
-    
-    // Handle control keys (check Ctrl+Shift combinations)
-    bool ctrlPressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
-    bool shiftPressed = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
-    
-    // Ctrl+Shift+R: Recording mode
-    if (ctrlPressed && shiftPressed && virtualKey == 'R') {
-        SetMode(AppMode::RECORDING);
-        return;
-    }
-    
-    // Ctrl+Shift+M: Mapping mode
-    if (ctrlPressed && shiftPressed && virtualKey == 'M') {
-        SetMode(AppMode::MAPPING);
-        return;
-    }
-    
-    // Ctrl+Shift+I: Idle mode
-    if (ctrlPressed && shiftPressed && virtualKey == 'I') {
-        SetMode(AppMode::IDLE);
-        return;
-    }
-    
-    // Ctrl+Shift+D: Toggle display
-    if (ctrlPressed && shiftPressed && virtualKey == 'D') {
-        m_displayEnabled = !m_displayEnabled;
-        m_overlay->SetVisible(m_displayEnabled);
-        std::cout << "Display overlay: " << (m_displayEnabled ? "ON" : "OFF") << std::endl;
-        return;
-    }
-    
-    // Ctrl+Shift+C: Clear all mappings
-    if (ctrlPressed && shiftPressed && virtualKey == 'C') {
-        m_config->ClearMappings();
-        m_overlay->UpdateMappings(m_config->GetAllMappings());
-        std::cout << "All mappings cleared." << std::endl;
-        return;
-    }
-    
-    // Ctrl+Shift+Q: Quit
-    if (ctrlPressed && shiftPressed && virtualKey == 'Q') {
-        std::cout << "Quitting application..." << std::endl;
-        m_running = false;
-        PostQuitMessage(0);
-        return;
-    }
-    
-    // Ctrl+Shift+H: Help
-    if (ctrlPressed && shiftPressed && virtualKey == 'H') {
-        PrintHelp();
-        return;
-    }
-    
-    // Ctrl+Shift+Delete: Remove mapping for next key
-    if (ctrlPressed && shiftPressed && virtualKey == VK_DELETE) {
-        std::cout << "Press a key to remove its mapping..." << std::endl;
-        return;
+    // Handle control keys (check Ctrl+Shift combinations) - only on key down
+    if (isDown) {
+        bool ctrlPressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+        bool shiftPressed = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+        
+        // Ctrl+Shift+R: Recording mode
+        if (ctrlPressed && shiftPressed && virtualKey == 'R') {
+            SetMode(AppMode::RECORDING);
+            return;
+        }
+        
+        // Ctrl+Shift+M: Mapping mode
+        if (ctrlPressed && shiftPressed && virtualKey == 'M') {
+            SetMode(AppMode::MAPPING);
+            return;
+        }
+        
+        // Ctrl+Shift+I: Idle mode
+        if (ctrlPressed && shiftPressed && virtualKey == 'I') {
+            SetMode(AppMode::IDLE);
+            return;
+        }
+        
+        // Ctrl+Shift+D: Toggle display
+        if (ctrlPressed && shiftPressed && virtualKey == 'D') {
+            m_displayEnabled = !m_displayEnabled;
+            m_overlay->SetVisible(m_displayEnabled);
+            std::cout << "Display overlay: " << (m_displayEnabled ? "ON" : "OFF") << std::endl;
+            return;
+        }
+        
+        // Ctrl+Shift+C: Clear all mappings
+        if (ctrlPressed && shiftPressed && virtualKey == 'C') {
+            m_config->ClearMappings();
+            m_overlay->UpdateMappings(m_config->GetAllMappings());
+            std::cout << "All mappings cleared." << std::endl;
+            return;
+        }
+        
+        // Ctrl+Shift+Q: Quit
+        if (ctrlPressed && shiftPressed && virtualKey == 'Q') {
+            std::cout << "Quitting application..." << std::endl;
+            m_running = false;
+            PostQuitMessage(0);
+            return;
+        }
+        
+        // Ctrl+Shift+H: Help
+        if (ctrlPressed && shiftPressed && virtualKey == 'H') {
+            PrintHelp();
+            return;
+        }
+        
+        // Ctrl+Shift+T: Toggle hold behavior
+        if (ctrlPressed && shiftPressed && virtualKey == 'T') {
+            bool newValue = !m_config->GetHoldTriggersContinuousTap();
+            m_config->SetHoldTriggersContinuousTap(newValue);
+            std::cout << "Hold behavior: " << (newValue ? "Continuous Tap (repeated clicks)" : "Maintain Touch (hold)") << std::endl;
+            return;
+        }
+        
+        // Ctrl+Shift+Delete: Remove mapping for next key
+        if (ctrlPressed && shiftPressed && virtualKey == VK_DELETE) {
+            std::cout << "Press a key to remove its mapping..." << std::endl;
+            return;
+        }
     }
     
     // Handle mode-specific key events
     switch (m_mode) {
         case AppMode::RECORDING: {
+            // Only process key down events in recording mode
+            if (!isDown) {
+                return;
+            }
+            
             // Ignore modifier keys
             if (virtualKey == VK_CONTROL || virtualKey == VK_SHIFT || 
                 virtualKey == VK_MENU || virtualKey == VK_LWIN || virtualKey == VK_RWIN) {
@@ -174,12 +213,43 @@ void Application::OnKeyEvent(int virtualKey, bool isDown) {
             // Check if this key has a mapping
             KeyMapping mapping;
             if (m_config->GetMapping(virtualKey, mapping)) {
-                // Inject touch at the mapped position
                 // Use modulo to cycle through available touch IDs
                 int touchId = virtualKey % MAX_SIMULTANEOUS_TOUCHES;
-                if (m_touchInjector->TouchTap(mapping.x, mapping.y, touchId)) {
-                    std::cout << "Touch triggered for [" << mapping.keyName << "] at (" 
-                             << mapping.x << ", " << mapping.y << ")" << std::endl;
+                
+                if (m_config->GetHoldTriggersContinuousTap()) {
+                    // Old behavior: trigger tap on every key down event (high frequency clicks)
+                    if (isDown) {
+                        if (m_touchInjector->TouchTap(mapping.x, mapping.y, touchId)) {
+                            std::cout << "Touch tap for [" << mapping.keyName << "] at (" 
+                                     << mapping.x << ", " << mapping.y << ")" << std::endl;
+                        }
+                    }
+                } else {
+                    // New default behavior: hold maintains touch
+                    if (isDown) {
+                        // Check if this is a new key press (not a repeat)
+                        auto it = m_keyStates.find(virtualKey);
+                        if (it == m_keyStates.end()) {
+                            // First press - touch down and add to map
+                            m_keyStates.emplace(virtualKey, true);
+                            if (m_touchInjector->TouchDown(mapping.x, mapping.y, touchId)) {
+                                std::cout << "Touch down for [" << mapping.keyName << "] at (" 
+                                         << mapping.x << ", " << mapping.y << ")" << std::endl;
+                            }
+                        }
+                        // Ignore repeat key down events while holding (entry exists in map)
+                    } else {
+                        // Key up - touch up
+                        auto it = m_keyStates.find(virtualKey);
+                        if (it != m_keyStates.end()) {
+                            if (m_touchInjector->TouchUp(touchId)) {
+                                std::cout << "Touch up for [" << mapping.keyName << "]" << std::endl;
+                            }
+                            // Use iterator-based erase to prevent memory growth
+                            // Iterator remains valid and erase is O(1) for the found element
+                            m_keyStates.erase(it);
+                        }
+                    }
                 }
             }
             break;
@@ -212,6 +282,7 @@ void Application::PrintStatus() {
     }
     
     std::cout << "Display: " << (m_displayEnabled ? "ON" : "OFF") << std::endl;
+    std::cout << "Hold behavior: " << (m_config->GetHoldTriggersContinuousTap() ? "Continuous Tap" : "Maintain Touch") << std::endl;
     std::cout << "Mappings: " << m_config->GetAllMappings().size() << " keys configured" << std::endl;
     
     if (m_touchInjector && m_touchInjector->IsSupported()) {
@@ -229,8 +300,32 @@ void Application::PrintHelp() {
     std::cout << "Ctrl+Shift+M : Enter MAPPING mode" << std::endl;
     std::cout << "Ctrl+Shift+I : Enter IDLE mode" << std::endl;
     std::cout << "Ctrl+Shift+D : Toggle display overlay" << std::endl;
+    std::cout << "Ctrl+Shift+T : Toggle hold behavior (hold touch vs repeated taps)" << std::endl;
     std::cout << "Ctrl+Shift+C : Clear all mappings" << std::endl;
     std::cout << "Ctrl+Shift+H : Show this help" << std::endl;
     std::cout << "Ctrl+Shift+Q : Quit application" << std::endl;
     std::cout << "==========================\n" << std::endl;
+}
+
+void CALLBACK Application::TouchUpdateTimerProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime) {
+    if (s_appInstance) {
+        s_appInstance->UpdateActiveTouches();
+    }
+}
+
+void Application::UpdateActiveTouches() {
+    // Only update touches in MAPPING mode when hold behavior is active
+    if (m_mode != AppMode::MAPPING || m_config->GetHoldTriggersContinuousTap()) {
+        return;
+    }
+    
+    // Send update events for all held keys to keep touches alive
+    for (const auto& keyState : m_keyStates) {
+        int virtualKey = keyState.first;
+        KeyMapping mapping;
+        if (m_config->GetMapping(virtualKey, mapping)) {
+            int touchId = virtualKey % MAX_SIMULTANEOUS_TOUCHES;
+            m_touchInjector->TouchUpdate(touchId);
+        }
+    }
 }
