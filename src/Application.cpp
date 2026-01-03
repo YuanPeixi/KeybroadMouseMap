@@ -58,6 +58,8 @@ bool Application::Initialize() {
     });
     
     // Create timer for touch updates (keeps touches alive)
+    // Using NULL hwnd creates a thread timer that posts WM_TIMER to the message queue
+    // This is processed by our message loop in Run()
     m_touchUpdateTimer = SetTimer(NULL, TOUCH_UPDATE_TIMER_ID, TOUCH_UPDATE_INTERVAL_MS, TouchUpdateTimerProc);
     if (m_touchUpdateTimer == 0) {
         std::cerr << "Warning: Failed to create touch update timer. Held touches may timeout." << std::endl;
@@ -243,7 +245,8 @@ void Application::OnKeyEvent(int virtualKey, bool isDown) {
                             if (m_touchInjector->TouchUp(touchId)) {
                                 std::cout << "Touch up for [" << mapping.keyName << "]" << std::endl;
                             }
-                            // Remove entry to prevent memory growth
+                            // Use iterator-based erase to prevent memory growth
+                            // Iterator remains valid and erase is O(1) for the found element
                             m_keyStates.erase(it);
                         }
                     }
