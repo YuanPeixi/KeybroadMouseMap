@@ -4,11 +4,18 @@
 
 // Application constants
 #define MAX_SIMULTANEOUS_TOUCHES 10
+#define TOUCH_UPDATE_TIMER_ID 1
+#define TOUCH_UPDATE_INTERVAL_MS 500  // Update every 500ms to keep touch alive
+
+// Static instance pointer for timer callback
+static Application* s_appInstance = nullptr;
 
 Application::Application()
     : m_mode(AppMode::IDLE)
     , m_running(false)
-    , m_displayEnabled(false) {
+    , m_displayEnabled(false)
+    , m_touchUpdateTimer(0) {
+    s_appInstance = this;
 }
 
 Application::~Application() {
@@ -50,6 +57,12 @@ bool Application::Initialize() {
         this->OnKeyEvent(vk, isDown);
     });
     
+    // Create timer for touch updates (keeps touches alive)
+    m_touchUpdateTimer = SetTimer(NULL, TOUCH_UPDATE_TIMER_ID, TOUCH_UPDATE_INTERVAL_MS, TouchUpdateTimerProc);
+    if (m_touchUpdateTimer == 0) {
+        std::cerr << "Warning: Failed to create touch update timer. Held touches may timeout." << std::endl;
+    }
+    
     m_running = true;
     PrintHelp();
     PrintStatus();
@@ -67,6 +80,12 @@ void Application::Run() {
 
 void Application::Shutdown() {
     m_running = false;
+    
+    // Kill the touch update timer
+    if (m_touchUpdateTimer != 0) {
+        KillTimer(NULL, m_touchUpdateTimer);
+        m_touchUpdateTimer = 0;
+    }
     
     // Release any active touches before shutting down
     if (m_touchInjector) {
@@ -283,4 +302,27 @@ void Application::PrintHelp() {
     std::cout << "Ctrl+Shift+H : Show this help" << std::endl;
     std::cout << "Ctrl+Shift+Q : Quit application" << std::endl;
     std::cout << "==========================\n" << std::endl;
+}
+
+void CALLBACK Application::TouchUpdateTimerProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime) {
+    if (s_appInstance) {
+        s_appInstance->UpdateActiveTouches();
+    }
+}
+
+void Application::UpdateActiveTouches() {
+    // Only update touches in MAPPING mode when hold behavior is active
+    if (m_mode != AppMode::MAPPING || m_config->GetHoldTriggersContinuousTap()) {
+        return;
+    }
+    
+    // Send update events for all held keys to keep touches alive
+    for (const auto& keyState : m_keyStates) {
+        int virtualKey = keyState.first;
+        KeyMapping mapping;
+        if (m_config->GetMapping(virtualKey, mapping)) {
+            int touchId = virtualKey % MAX_SIMULTANEOUS_TOUCHES;
+            m_touchInjector->TouchUpdate(touchId);
+        }
+    }
 }

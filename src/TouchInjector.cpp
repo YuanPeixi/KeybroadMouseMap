@@ -152,6 +152,45 @@ bool TouchInjector::TouchUp(int touchId) {
     return false;
 }
 
+bool TouchInjector::TouchUpdate(int touchId) {
+    if (!m_initialized || !m_supported) {
+        return false;
+    }
+    
+    // Find the active touch point
+    for (const auto& tp : m_activeTouches) {
+        if (tp.id == touchId && tp.isActive) {
+            POINTER_TOUCH_INFO contact;
+            memset(&contact, 0, sizeof(POINTER_TOUCH_INFO));
+            
+            contact.pointerInfo.pointerType = PT_TOUCH;
+            contact.pointerInfo.pointerId = touchId;
+            contact.pointerInfo.ptPixelLocation.x = tp.x;
+            contact.pointerInfo.ptPixelLocation.y = tp.y;
+            contact.pointerInfo.pointerFlags = POINTER_FLAG_UPDATE | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT;
+            
+            if (touchId == 0) {
+                contact.pointerInfo.pointerFlags |= POINTER_FLAG_PRIMARY;
+            }
+            
+            // Set contact area (small circle)
+            contact.rcContact.left = tp.x - TOUCH_CONTACT_RADIUS;
+            contact.rcContact.right = tp.x + TOUCH_CONTACT_RADIUS;
+            contact.rcContact.top = tp.y - TOUCH_CONTACT_RADIUS;
+            contact.rcContact.bottom = tp.y + TOUCH_CONTACT_RADIUS;
+            
+            contact.touchFlags = 0;
+            contact.touchMask = TOUCH_MASK_CONTACTAREA | TOUCH_MASK_ORIENTATION | TOUCH_MASK_PRESSURE;
+            contact.orientation = TOUCH_DEFAULT_ORIENTATION;
+            contact.pressure = TOUCH_DEFAULT_PRESSURE;
+            
+            return m_injectTouchInput(1, &contact);
+        }
+    }
+    
+    return false;
+}
+
 bool TouchInjector::TouchTap(int x, int y, int touchId) {
     if (!m_initialized) {
         return false;
