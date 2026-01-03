@@ -1,0 +1,17 @@
+# Example Keyboard to Touch Mapping Configuration
+# Format: VirtualKeyCode X Y KeyName
+#
+# This is an example configuration file.
+# The application will create its own keymap_config.txt when you use Recording Mode.
+#
+# Common Virtual Key Codes:
+# - Letters: A=65, B=66, C=67, ... Z=90
+# - Numbers: 0=48, 1=49, 2=50, ... 9=57
+# - Function keys: F1=112, F2=113, ... F12=123
+# - Numpad: 0=96, 1=97, ... 9=105
+#
+# Example mappings:
+# 65 100 100 A
+# 66 200 200 B
+# 49 300 300 1
+# 50 400 400 2
