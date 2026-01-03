@@ -44,6 +44,7 @@
 build/
 bin/
 out/
+_codeql_*/
 
 # CMake
 CMakeCache.txt
