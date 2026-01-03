@@ -2,6 +2,9 @@
 #include <iostream>
 #include <iomanip>
 
+// Application constants
+#define MAX_SIMULTANEOUS_TOUCHES 10
+
 Application::Application()
     : m_mode(AppMode::IDLE)
     , m_running(false)
@@ -172,7 +175,9 @@ void Application::OnKeyEvent(int virtualKey, bool isDown) {
             KeyMapping mapping;
             if (m_config->GetMapping(virtualKey, mapping)) {
                 // Inject touch at the mapped position
-                if (m_touchInjector->TouchTap(mapping.x, mapping.y, virtualKey % 10)) {
+                // Use modulo to cycle through available touch IDs
+                int touchId = virtualKey % MAX_SIMULTANEOUS_TOUCHES;
+                if (m_touchInjector->TouchTap(mapping.x, mapping.y, touchId)) {
                     std::cout << "Touch triggered for [" << mapping.keyName << "] at (" 
                              << mapping.x << ", " << mapping.y << ")" << std::endl;
                 }

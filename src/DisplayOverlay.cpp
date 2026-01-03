@@ -4,6 +4,11 @@
 
 #pragma comment(lib, "dwmapi.lib")
 
+// Display overlay constants
+#define OVERLAY_ALPHA_VALUE     200
+#define KEY_INDICATOR_RADIUS    30
+#define KEY_FONT_SIZE           20
+
 DisplayOverlay* DisplayOverlay::s_instance = nullptr;
 
 DisplayOverlay::DisplayOverlay()
@@ -52,7 +57,7 @@ bool DisplayOverlay::Create() {
     }
     
     // Make the window click-through and semi-transparent
-    SetLayeredWindowAttributes(m_hwnd, RGB(0, 0, 0), 200, LWA_ALPHA);
+    SetLayeredWindowAttributes(m_hwnd, RGB(0, 0, 0), OVERLAY_ALPHA_VALUE, LWA_ALPHA);
     
     // Enable transparency for the window
     MARGINS margins = {-1, -1, -1, -1};
@@ -148,7 +153,7 @@ void DisplayOverlay::OnPaint() {
     
     // Create font
     HFONT hFont = CreateFontW(
-        20, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+        KEY_FONT_SIZE, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
         L"Arial"
@@ -160,7 +165,7 @@ void DisplayOverlay::OnPaint() {
         const KeyMapping& mapping = pair.second;
         
         // Draw grey circle
-        int radius = 30;
+        int radius = KEY_INDICATOR_RADIUS;
         HBRUSH circleBrush = CreateSolidBrush(RGB(128, 128, 128));
         HPEN circlePen = CreatePen(PS_SOLID, 2, RGB(200, 200, 200));
         

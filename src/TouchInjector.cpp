@@ -1,6 +1,15 @@
 #include "TouchInjector.h"
 #include <iostream>
 
+// Touch injection constants
+#define TOUCH_MASK_CONTACTAREA  0x00000001
+#define TOUCH_MASK_ORIENTATION  0x00000002
+#define TOUCH_MASK_PRESSURE     0x00000004
+#define TOUCH_HOLD_DURATION_MS  50
+#define TOUCH_CONTACT_RADIUS    2
+#define TOUCH_DEFAULT_PRESSURE  32000
+#define TOUCH_DEFAULT_ORIENTATION 90
+
 // POINTER_TOUCH_INFO structure definition
 typedef struct tagPOINTER_INFO {
     UINT32 pointerType;
@@ -105,15 +114,15 @@ bool TouchInjector::TouchDown(int x, int y, int touchId) {
     }
     
     // Set contact area (small circle)
-    contact.rcContact.left = x - 2;
-    contact.rcContact.right = x + 2;
-    contact.rcContact.top = y - 2;
-    contact.rcContact.bottom = y + 2;
+    contact.rcContact.left = x - TOUCH_CONTACT_RADIUS;
+    contact.rcContact.right = x + TOUCH_CONTACT_RADIUS;
+    contact.rcContact.top = y - TOUCH_CONTACT_RADIUS;
+    contact.rcContact.bottom = y + TOUCH_CONTACT_RADIUS;
     
     contact.touchFlags = 0;
-    contact.touchMask = 0x00000001 | 0x00000002 | 0x00000004; // TOUCH_MASK_CONTACTAREA | TOUCH_MASK_ORIENTATION | TOUCH_MASK_PRESSURE
-    contact.orientation = 90;
-    contact.pressure = 32000;
+    contact.touchMask = TOUCH_MASK_CONTACTAREA | TOUCH_MASK_ORIENTATION | TOUCH_MASK_PRESSURE;
+    contact.orientation = TOUCH_DEFAULT_ORIENTATION;
+    contact.pressure = TOUCH_DEFAULT_PRESSURE;
     
     if (m_injectTouchInput(1, &contact)) {
         TouchPoint tp;
@@ -171,7 +180,7 @@ bool TouchInjector::TouchTap(int x, int y, int touchId) {
     }
     
     // Brief hold
-    Sleep(50);
+    Sleep(TOUCH_HOLD_DURATION_MS);
     
     // Touch up
     return TouchUp(touchId);
