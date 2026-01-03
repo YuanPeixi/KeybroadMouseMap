@@ -84,8 +84,9 @@ bool ConfigManager::LoadMappings() {
         if (line.empty() || line[0] == '#') continue;
         
         // Check for configuration options
-        if (line.find("hold_triggers_continuous_tap=") == 0) {
-            std::string value = line.substr(29); // Length of "hold_triggers_continuous_tap="
+        const std::string configKey = "hold_triggers_continuous_tap=";
+        if (line.find(configKey) == 0) {
+            std::string value = line.substr(configKey.length());
             m_holdTriggersContinuousTap = (value == "1" || value == "true");
             continue;
         }

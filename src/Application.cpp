@@ -208,9 +208,16 @@ void Application::OnKeyEvent(int virtualKey, bool isDown) {
                     if (isDown) {
                         // Check if this is a new key press (not a repeat)
                         auto it = m_keyStates.find(virtualKey);
-                        if (it == m_keyStates.end() || !it->second) {
+                        if (it == m_keyStates.end()) {
                             // First press - touch down
                             m_keyStates[virtualKey] = true;
+                            if (m_touchInjector->TouchDown(mapping.x, mapping.y, touchId)) {
+                                std::cout << "Touch down for [" << mapping.keyName << "] at (" 
+                                         << mapping.x << ", " << mapping.y << ")" << std::endl;
+                            }
+                        } else if (!it->second) {
+                            // Key was released and pressed again - touch down
+                            it->second = true;
                             if (m_touchInjector->TouchDown(mapping.x, mapping.y, touchId)) {
                                 std::cout << "Touch down for [" << mapping.keyName << "] at (" 
                                          << mapping.x << ", " << mapping.y << ")" << std::endl;
@@ -219,13 +226,13 @@ void Application::OnKeyEvent(int virtualKey, bool isDown) {
                         // Ignore repeat key down events while holding
                     } else {
                         // Key up - touch up
-                        // Check if key was previously pressed to avoid creating new map entries
                         auto it = m_keyStates.find(virtualKey);
                         if (it != m_keyStates.end() && it->second) {
-                            it->second = false;
                             if (m_touchInjector->TouchUp(touchId)) {
                                 std::cout << "Touch up for [" << mapping.keyName << "]" << std::endl;
                             }
+                            // Remove entry to prevent memory growth
+                            m_keyStates.erase(it);
                         }
                     }
                 }
