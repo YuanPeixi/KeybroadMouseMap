@@ -26,6 +26,22 @@ std::string ConfigManager::GetKeyName(int virtualKey) {
 }
 
 bool ConfigManager::SaveMapping(int virtualKey, int x, int y, const std::string& keyName) {
+    // Validate virtual key code
+    if (virtualKey < 0 || virtualKey > 255) {
+        std::cerr << "Invalid virtual key code: " << virtualKey << std::endl;
+        return false;
+    }
+    
+    // Get screen dimensions for validation
+    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+    
+    // Clamp coordinates to valid screen bounds
+    if (x < 0) x = 0;
+    if (x > screenWidth) x = screenWidth;
+    if (y < 0) y = 0;
+    if (y > screenHeight) y = screenHeight;
+    
     KeyMapping mapping;
     mapping.x = x;
     mapping.y = y;
@@ -71,6 +87,22 @@ bool ConfigManager::LoadMappings() {
         std::string keyName;
         
         if (iss >> virtualKey >> x >> y) {
+            // Validate input ranges
+            if (virtualKey < 0 || virtualKey > 255) {
+                std::cerr << "Invalid virtual key code: " << virtualKey << std::endl;
+                continue;
+            }
+            
+            // Get screen dimensions for validation
+            int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+            int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+            
+            // Clamp coordinates to valid screen bounds
+            if (x < 0) x = 0;
+            if (x > screenWidth) x = screenWidth;
+            if (y < 0) y = 0;
+            if (y > screenHeight) y = screenHeight;
+            
             // Read the rest as key name
             std::getline(iss, keyName);
             // Trim leading whitespace

@@ -95,6 +95,20 @@ bool TouchInjector::TouchDown(int x, int y, int touchId) {
         return false;
     }
     
+    // Validate touch ID range
+    if (touchId < 0 || touchId >= 10) {
+        std::cerr << "Invalid touch ID: " << touchId << std::endl;
+        return false;
+    }
+    
+    // Validate coordinates are within screen bounds
+    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+    if (x < 0 || x > screenWidth || y < 0 || y > screenHeight) {
+        std::cerr << "Touch coordinates out of bounds: (" << x << ", " << y << ")" << std::endl;
+        return false;
+    }
+    
     if (!m_supported) {
         // Fallback: just return true, actual tap will be done in TouchTap
         return true;
