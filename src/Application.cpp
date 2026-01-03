@@ -209,25 +209,18 @@ void Application::OnKeyEvent(int virtualKey, bool isDown) {
                         // Check if this is a new key press (not a repeat)
                         auto it = m_keyStates.find(virtualKey);
                         if (it == m_keyStates.end()) {
-                            // First press - touch down
-                            m_keyStates[virtualKey] = true;
-                            if (m_touchInjector->TouchDown(mapping.x, mapping.y, touchId)) {
-                                std::cout << "Touch down for [" << mapping.keyName << "] at (" 
-                                         << mapping.x << ", " << mapping.y << ")" << std::endl;
-                            }
-                        } else if (!it->second) {
-                            // Key was released and pressed again - touch down
-                            it->second = true;
+                            // First press - touch down and add to map
+                            m_keyStates.emplace(virtualKey, true);
                             if (m_touchInjector->TouchDown(mapping.x, mapping.y, touchId)) {
                                 std::cout << "Touch down for [" << mapping.keyName << "] at (" 
                                          << mapping.x << ", " << mapping.y << ")" << std::endl;
                             }
                         }
-                        // Ignore repeat key down events while holding
+                        // Ignore repeat key down events while holding (entry exists in map)
                     } else {
                         // Key up - touch up
                         auto it = m_keyStates.find(virtualKey);
-                        if (it != m_keyStates.end() && it->second) {
+                        if (it != m_keyStates.end()) {
                             if (m_touchInjector->TouchUp(touchId)) {
                                 std::cout << "Touch up for [" << mapping.keyName << "]" << std::endl;
                             }
